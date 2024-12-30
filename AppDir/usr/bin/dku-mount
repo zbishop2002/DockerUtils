@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Check for container name/ID argument
+if [ -z "$1" ]; then
+    echo "Usage: dku mount [CONTAINER NAME/ID]"
+    exit 1
+fi
+
+CONTAINER_ID="$1"
+MOUNT_POINT="/tmp/dku-mount-$CONTAINER_ID"
+
+# Step 1: Detect Container Distro
+DISTRO=$(docker exec "$CONTAINER_ID" sh -c 'cat /etc/os-release | grep ^ID= | cut -d= -f2' 2>/dev/null | tr -d '"')
+
+if [ -z "$DISTRO" ]; then
+    echo "❌ Unable to detect the container's base distribution."
+    exit 1
+fi
+
+echo "🛠️ Detected container distro: $DISTRO"
+
+# Step 2: Install and Configure SSH Server
+case "$DISTRO" in
+    ubuntu|debian)
+        docker exec "$CONTAINER_ID" sh -c "apt-get update && apt-get install -y gvfs openssh-server"
+        ;;
+    centos|rhel|fedora)
+        docker exec "$CONTAINER_ID" sh -c "dnf install -y openssh-server pkill"
+        ;;
+    alpine)
+        docker exec "$CONTAINER_ID" sh -c "apk add openssh"
+        ;;
+    *)
+        echo "❌ Unsupported distribution: $DISTRO"
+        exit 1
+        ;;
+esac
+
+# Step 3: Ensure SSH service is running and configurations are updated
+docker exec "$CONTAINER_ID" sh -c "
+    mkdir -p /run/sshd && \
+    ssh-keygen -A && \
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config && \
+    echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \
+    echo 'root:dockerutils' | chpasswd
+"
+
+# Step 4: Restart SSH Service Properly
+docker exec "$CONTAINER_ID" sh -c "
+pkill -f sshd || true
+"
+
+sleep 5
+docker exec "$CONTAINER_ID" sh -c "/usr/sbin/sshd"
+
+# Verify SSHD is running
+docker exec "$CONTAINER_ID" sh -c "ps aux | grep '[s]shd'" || {
+    echo "❌ SSHD failed to start after restart."
+    exit 1
+}
+
+# Step 5: Retrieve Container IP
+CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CONTAINER_ID")
+
+if [ -z "$CONTAINER_IP" ]; then
+    echo "❌ Unable to retrieve container IP address."
+    exit 1
+fi
+
+echo "🌐 Container IP: $CONTAINER_IP"
+
+# Step 6: Create mount point
+mkdir -p "$MOUNT_POINT"
+
+# Step 7: Attempt to Mount with `gio mount`
+echo "🛠️ Attempting to mount using gio..."
+gio mount "sftp://root@$CONTAINER_IP"
+
+# Check if gio mount succeeded
+if gio mount --list | grep -q "$CONTAINER_IP"; then
+    echo "✅ Successfully mounted using gio. Accessible via your file manager."
+else
+    echo "❌ gio mount failed. Falling back to sshfs..."
+
+    # Step 8: Fallback to SSHFS
+    sshfs -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$CONTAINER_IP":/ "$MOUNT_POINT"
+
+    if [ $? -eq 0 ]; then
+        echo "✅ Container filesystem mounted at $MOUNT_POINT"
+    else
+        echo "❌ Failed to mount the container filesystem with sshfs."
+        exit 1
+    fi
+fi
+

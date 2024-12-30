@@ -8,8 +8,28 @@ case "$1" in
         shift
         exec "$APPDIR/usr/bin/dku-sh" "$@"
         ;;
+    net)
+        shift
+        exec "$APPDIR/usr/bin/dku-net" "$@"
+        ;;
+    mount)
+        shift
+        exec "$APPDIR/usr/bin/dku-mount" "$@"
+        ;;
     *)
-        echo "Usage: dku [bash|sh] [CONTAINER NAME/ID]"
+        echo "Usage: dku [OPTION] [CONTAINER NAME/ID]"
+        echo
+        echo "Container Shell Access:"
+        echo "  bash     Access bash shell"
+        echo "  sh       Access sh shell"
+        echo
+        echo "Container Information:"
+        echo "  net      Print bound ports and IP address. Leave blank after 'net' for all container IPs/Ports"
+#        echo "  dash     Opens lazydocker, a terminal container manager and dashboard"
+        echo
+        echo "Files and Storage:"
+        echo "  mount    Mounts container filesystem through SFTP at /tmp/dku-mount-[CONTAINER_ID]"
+#        echo "  backup   Backup container with bind volumes"
         exit 1
         ;;
 esac
