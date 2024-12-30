@@ -42,8 +42,6 @@ SELECTED_APPIMAGE="${APPIMAGES[$((SELECTION-1))]}"
 
 # Copy the selected AppImage to ~/.local/bin and rename it to dku
 cp "$SELECTED_APPIMAGE" "$TARGET_DIR/dku"
-mv "$TARGET_DIR/$SELECTED_APPIMAGE" "$TARGET_DIR/dku"
-
 
 # Make the copied AppImage executable
 chmod +x "$TARGET_DIR/dku"
