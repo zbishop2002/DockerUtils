@@ -40,17 +40,17 @@ fi
 # Get selected AppImage
 SELECTED_APPIMAGE="${APPIMAGES[$((SELECTION-1))]}"
 
-# Make the selected AppImage executable
-chmod +x "$SELECTED_APPIMAGE"
+# Copy the selected AppImage to ~/.local/bin and rename it to dku
+cp "$SELECTED_APPIMAGE" "$TARGET_DIR/dku"
 
-# Rename and move to ~/.local/bin
-mv "$SELECTED_APPIMAGE" "$TARGET_DIR/dku"
+# Make the copied AppImage executable
+chmod +x "$TARGET_DIR/dku"
 
 # Verify installation
 if [[ -x "$TARGET_DIR/dku" ]]; then
-    echo "✅ The selected AppImage has been renamed to 'dku' and moved to $TARGET_DIR."
+    echo "✅ The selected AppImage has been copied, renamed to 'dku', and moved to $TARGET_DIR."
 else
-    echo "❌ Failed to move the AppImage. Please check permissions."
+    echo "❌ Failed to install the AppImage. Please check permissions."
     exit 1
 fi
 
