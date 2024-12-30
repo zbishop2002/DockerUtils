@@ -4,3 +4,4 @@ Exec=AppRun
 Icon=utilities-terminal
 Type=Application
 Categories=Utility;TerminalEmulator;
+X-AppImage-Version=1.0.0
