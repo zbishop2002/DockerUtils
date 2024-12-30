@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Define APPDIR as the root of the AppImage filesystem
+APPDIR="$(readlink -f "$(dirname "$0")")"
+
+# Update PATH to include internal binaries
+export PATH="$APPDIR/usr/bin:$PATH"
+
+# Route commands to appropriate scripts
+case "$1" in
+    bash)
+        shift
+        exec "$APPDIR/usr/bin/dku-bash" "$@"
+        ;;
+    sh)
+        shift
+        exec "$APPDIR/usr/bin/dku-sh" "$@"
+        ;;
+    net)
+        shift
+        exec "$APPDIR/usr/bin/dku-net" "$@"
+        ;;
+    *)
+        exec "$APPDIR/usr/bin/dku" "$@"
+        ;;
+esac
+

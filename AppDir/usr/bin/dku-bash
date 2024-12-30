@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ -z "$1" ]; then
+    echo "Usage: dku bash [CONTAINER NAME/ID]"
+    exit 1
+fi
+docker exec -it "$1" bash
+

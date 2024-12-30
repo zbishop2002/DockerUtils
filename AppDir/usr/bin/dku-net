@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Check if a container ID or name was provided
+if [ -n "$1" ]; then
+    # Single container network info
+    container_id=$1
+    container_name=$(docker inspect --format='{{.Name}}' "$container_id" | sed 's/^\/\?//')
+    container_ip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_id")
+    container_ports=$(docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}{{$p}} -> {{if $conf}} {{(index $conf 0).HostPort}}{{else}} N/A{{end}}{{"\n"}}{{end}}' "$container_id")
+
+    # Handle empty container_ports
+    if [[ -z "$container_ports" ]]; then
+        container_ports="No Ports"
+    fi
+
+    # Print single container info
+    echo -e "CONTAINER NAME\tCONTAINER IP\tPORTS"
+    echo -e "${container_name}\t${container_ip:-No IP}\t${container_ports}"
+else
+    # Print header for all containers
+    echo -e "CONTAINER NAME\tCONTAINER IP\tPORTS"
+
+    # Loop through all running containers
+    docker ps --format "{{.ID}}" | while read -r container_id; do
+        # Get container name
+        container_name=$(docker inspect --format='{{.Name}}' "$container_id" | sed 's/^\/\?//')
+
+        # Get container IP address
+        container_ip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_id")
+
+        # Get container ports
+        container_ports=$(docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}{{$p}} -> {{if $conf}} {{(index $conf 0).HostPort}}{{else}} N/A{{end}}{{"\n"}}{{end}}' "$container_id")
+
+        # Handle empty container_ports
+        if [[ -z "$container_ports" ]]; then
+            container_ports="No Ports"
+        fi
+
+        # Print information
+        echo -e "${container_name}\t${container_ip:-No IP}\t${container_ports}"
+    done
+fi
+

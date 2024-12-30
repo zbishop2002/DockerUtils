@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Docker Utilities
+Exec=AppRun
+Icon=utilities-terminal
+Type=Application
+Categories=Utility;TerminalEmulator;
